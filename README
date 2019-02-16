@@ -1,0 +1,110 @@
+-------------------------------------------------------------------------------
+Vlad Marius-Cătălin 325CD
+Anul II Semestrul II
+Tema2 Protocoale de Comunicații
+-------------------------------------------------------------------------------
+
+    Pentru server și clienți se folosesc 2 biblioteci cu funcții ajutătoare:
+
+    errors.h:
+    Conține 2 funcții care sunt folosite în întâmpinarea erorilor speicifate în
+enunț și erorilor care țin de socket-i, funcții de trimitere și primire de me-
+saje, funcții de citire din fișier etc.
+    Prima funcție generează un string cu mesajul erorii respective, iar a doua
+iese din program închijând socket-ii.
+
+    helper.h:
+    Conține funcții care sunt folosite în prelucrarea string-urilor pentru di-
+ferite comenzi. Acestea primesc un string și extrag din acesta datele necesare
+fiecărei operații.
+
+
+
+    Server:
+    În cazul server-ului am folosit o structură CLIENT care reține informațiile
+din fișierul de intrare și alte trei variabile care contorizează dacă clientul
+este autentificat, numărul de introduceri greșite ale PIN-ului și dacă clientul
+are cardul blocat.
+    În funcția principală se deschid socket-ii pentru protocoalele UDP și TCP
+și se încarcă datele din fișierul de intrare. Apoi se intră în bucla de aștep-
+tare a comenzilor de la clienți sau de la terminal.
+    La primirea comenzii „quit” de la terminal, serverul iese din bucla respec-
+tivă. La primirea comenzilor de la clienți se verifică mai întâi de pe ce port
+au venit și se prelucrează conform cerinței.
+
+    Client:
+    În funcția principală se deschid socket-ii pentru protocoalele UDP și TCP
+și se creează fișierul de log. Apoi se intră în bucla de așteptare de comenzi
+de la terminal sau de la server.
+    La primirea unei comenzi de la terminal aceasta se scrie în fișierul de log,
+se verifică pe ce protocol ar trebui trimisă comanda. Dacă nu se găsește comanda
+dată de la tastatură în lista de comenzi acceptate, se returnează un mesaj de
+eroare. Dacă identificarea s-a încheiat cu succes, se trimite comanda pe
+socket-ul respectiv.
+    La primirea unei comenzi de la server pe un socket se schimbă variabilele
+corespunzătoare fiecărei acțiuni și se scrie aceasta în fișieul de log.
+
+
+
+    Reprezentare comenzi:
+
+login:
+    Clientul verifică dacă este deja autentificat. În caz afirmativ se afișează
+un mesaj de eroare și nu se trimite mesaj către server. În caz negativ se ex-
+trag numărul de card și PIN-ul din acestea, se salvează numărul de card și se
+trimite mesaj către server.
+    Serverul extrage numărul de card și PIN-un din mesaj și caută clientul cu
+numărul de card respectiv. Serverul va trimite mesaje de eroare în cazul în ca-
+re cardul nu există, clientul este deja logat pe un alt terminal, PIN-ul este
+greșit sau dacă cardul este blocat. La primirea a 3 PIN-uri greșite, server-ul
+va bloca cardul respectiv.
+
+logout:
+    Clientul verifică dacă există client autentificat în momentul respectiv.
+În caz negativ, se afișează un mesaj de eroare. În caz afirmativ, se trimite
+server-ului mesajul „logout nr_card_autentificat”.
+    Server-ul caută clientul cu numărul de card respectiv și marchează clientul
+ca fiind delogat.
+
+listsold:
+    Clientul verifică dacă există client autentificat în momentul respectiv.
+În caz negativ, se afișează un mesaj de eroare. În caz afirmativ, se trimite
+server-ului mesajul „listsold nr_card_autentificat”.
+    Server-ul caută clientul cu numărul de card respectiv și trimite mesaj cli-
+entului cu suma sa din cont.
+
+transfer:
+    Clientul verifică dacă există client autentificat în momentul respectiv.
+În caz negativ, se afișează un mesaj de eroare. În caz afirmativ, se trimite
+server-ului mesajul „transfer nr_card_destinație sumă nr_card_sursă” și se
+setează pe 1 variabila care marchează faptul că clientul trebuie să aștepte
+confirmarea operației.
+    Serverul verifică corectitudinea datelor trimise și va trimite mesaj de e-
+roare sau mesajul de interogare.
+    Clientul verifică ce fel de mesaj a primit. Dacă a primit eroare, variabila
+de așteptare se setează pe 0 și se așteaptă orice fel de comandă. Dacă a primit
+mesajul de interogare, va aștepta comanda de la tastatură. Dacă se primește alt-
+ceva decât litera „y” transferul de anulează. Dacă se citește „y” se trimite
+către server mesajul „y” cu aceeași parametrii ca la comanda transfer. Apoi se
+setează variabila de așteptare pe 0.
+    Serverul efectuează operația de transfer și trimite clientului mesajul de
+confirmare.
+
+unlock:
+    Clientul trimite către server mesajul „unlock nr_card”.
+    Server-ul verifică dacă numărul de card există și dacă acesta are cardul
+blocat. Se trimite eroare în caz afirmativ. În caz negativ se trimite mesaj ca-
+re cere parola secretă a clientului.
+    Clientul, dacă nu primește eroare, setează variabila de așteptare pe 1 și
+așteaptă de la tastatură parola secretă. Apoi va trimite mesaj către server
+„unlock_with_pass nr_card parola” și setează variabila de așteptare pe 0.
+    Serverul verifică dacă clientul cu cardul respectiv are parola identică cu
+cea trimisă. Se deblochează cardul doar dacă parola introdusă este corectă. Se
+trimite un mesaj clientului cu eroare sau deblocare efectuată.
+
+quit:
+    În cazul server-ului se iese din buclă, iar clienții vor detecta datorită
+funcției „send” care va returna 0, și aceștia se vor închide.
+    În cazul clientului, se verifică dacă există client logat. Dacă există, se
+trimite mai întâi comandă de „logout” apoi de quit.
+    Serverul, când primește „quit”, va închide socket-ul respectiv clientului.
